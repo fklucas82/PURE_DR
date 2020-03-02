@@ -1,0 +1,2 @@
+- name: Add datastores to cluster
+  import_tasks: add_datastores.yml

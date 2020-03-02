@@ -1,0 +1,2 @@
+- name: Add cloned volume to Chaska hostgroup
+  import_tasks: add_vol_to_hostgroup.yml

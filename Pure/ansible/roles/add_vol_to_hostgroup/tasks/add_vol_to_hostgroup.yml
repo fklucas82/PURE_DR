@@ -1,0 +1,8 @@
+- name: add volume clones to chaska hostgroup
+  purefa_hg:
+    hostgroup: ChasApp-Cluster
+    volume:
+      - pure-wdm-ds0-restore
+      - pure-wdm-ds1-restore
+    fa_url: "{{ arrayurl }}"
+    api_token: "{{ array_token }}"

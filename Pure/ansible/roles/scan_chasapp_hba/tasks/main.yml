@@ -1,0 +1,2 @@
+- name: Scan Host Bus Adapters for ChasApp Hosts
+  import_tasks: scan_chasapp_hba.yml

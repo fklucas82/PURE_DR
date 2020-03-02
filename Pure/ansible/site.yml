@@ -1,0 +1,10 @@
+---
+- hosts: localhost
+  gather_facts: false
+  roles:
+    - role: clone_vol_from_snapshot 
+    - role: add_vol_to_hostgroup
+    - role: scan_chasapp_hba
+      tags: ['vmware']
+    - role: add_datastores
+      tags: ['datastore']  

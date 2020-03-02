@@ -1,0 +1,16 @@
+ansible_connection: winrm
+ansible_winrm_server_cert_validation: ignore
+ansible_winrm_transport: kerberos
+ansible_port: 5986
+ansible_winrm_kerberos_delegation: true
+ansible_user: Ansible_Systems_Svc
+ansible_password: !vault |
+          $ANSIBLE_VAULT;1.1;AES256
+          35623637333231326266363238336336366430393934643037306139313130626563373632303830
+          3234373831333461636163346237316461363431623039640a343232313565346639306138343333
+          61333736353438663436646262663932303637316335373938326663333763326633643232383364
+          3864363464353538660a616165383664643636653130306665373163353336333365323436653261
+          3034
+
+#ansible_become_user: "{{ domain_join_user }}"
+#ansible_become_pass: "{{ domain_join_password }}"

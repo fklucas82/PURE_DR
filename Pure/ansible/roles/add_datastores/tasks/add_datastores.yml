@@ -1,0 +1,165 @@
+- name: add windows bridge as host
+  add_host:
+    groups: windows 
+    name: "{{ windows_bridge_server }}" 
+    ansible_connection: winrm
+    ansible_port: 5986
+    ansible_winrm_server_cert_validation: ignore
+    ansible_user: "{{ ansible_user }}"
+    ansible_password: "{{ ansible_password }}"
+    ansible_winrm_transport: kerberos
+    
+- name: Make sure C:\Temp exists
+  win_file:
+    path: "{{ temp_dir }}"
+    state: directory
+  delegate_to: "{{ windows_bridge_server }}" 
+  become: yes
+  become_method: runas
+  become_flags: logon_type=new_credentials logon_flags=netcredentials_only
+
+- name: Copy Resignature.ps1 to C:\Temp
+  win_copy:
+    src: Resignature.ps1
+    dest: "{{ temp_dir }}\\Resignature.ps1"
+  delegate_to: "{{ windows_bridge_server }}" 
+  become: yes
+  become_method: runas
+  become_flags: logon_type=new_credentials logon_flags=netcredentials_only
+
+- name: Copy ScanVMFS.ps1 to C:\Temp
+  win_copy:
+    src: ScanVMFS.ps1
+    dest: "{{ temp_dir }}\\ScanVMFS.ps1"
+  delegate_to: "{{ windows_bridge_server }}" 
+  become: yes
+  become_method: runas
+  become_flags: logon_type=new_credentials logon_flags=netcredentials_only
+
+- name: Resignature datastores
+  win_shell: "{{ temp_dir }}\\Resignature.ps1 -vCenter {{ vcenter_hostname }} -Cluster {{ Cluster }} -EsxHost {{ esxi_server }} -Volume {{ item }} -Username {{ ansible_user }} -Password {{ ansible_password }}"
+  delegate_to: "{{ windows_bridge_server }}"
+  become: yes
+  become_method: runas
+  become_flags: logon_type=new_credentials logon_flags=netcredentials_only
+  with_items:
+    - pure-wdm-ds0
+    - pure-wdm-ds1
+
+- name: Rescan VMFS for ChasApps Cluster
+  win_shell: "{{ temp_dir }}\\ScanVMFS.ps1 -vCenter {{ vcenter_hostname }} -Cluster {{ Cluster }} -Username {{ ansible_user }} -Password {{ ansible_password }}"
+  delegate_to: "{{ windows_bridge_server }}"
+  become: yes
+  become_method: runas
+  become_flags: logon_type=new_credentials logon_flags=netcredentials_only
+
+    
+
+#Keep this if vmware_host_datastore resignature feature request happens
+# - name: collect pure volume information
+#   purefa_info:
+#     fa_url: "{{ arrayurl }}"
+#     api_token: "{{ array_token }}"
+#     gather_subset:
+#      - volumes 
+#   register: array_volumes
+
+# - name: output test volume info
+#   vars:
+#     query: 'purefa_info.volumes."pure-wdm-ds0-restore".serial'
+#   debug:
+#     msg: "{{ array_volumes | json_query(query) | lower }}"
+
+# - name: output test volume info
+#   vars:
+#     query: 'purefa_info.volumes."pure-wdm-ds1-restore".serial'
+#   debug:
+#     msg: "{{ array_volumes | json_query(query) | lower }}"
+
+# - name: get serial number of pure-wdm-ds0-restore
+#   vars:
+#     query: 'purefa_info.volumes."pure-wdm-ds0-restore".serial'
+#   set_fact:
+#     ds0info: "{{ array_volumes | json_query(query) | lower}}"
+
+# - name: get serial number of pure-wdm-ds1-restore
+#   vars:
+#     query: 'purefa_info.volumes."pure-wdm-ds1-restore".serial'
+#   set_fact:
+#     ds1info: "{{ array_volumes | json_query(query) | lower}}"
+
+# - name: get vmware host facts
+#   vmware_target_canonical_info:
+#     hostname: "{{ vcenter_hostname }}"
+#     esxi_hostname: "{{ esxi_server }}"
+#     username: "{{ username }}"
+#     password: "{{ password }}"
+#     validate_certs: no
+#   register: canonical_facts
+#   delegate_to: localhost  
+
+# - name: output lun info
+#   vars:
+#     query: 'scsi_tgt_info."pchaesxhst01.hy-vee.net".scsilun_canonical'
+#   debug:
+#     msg: "{{ canonical_facts | json_query(query) }}"
+
+# - name: output lun info
+#   vars:
+#     query: 'scsi_tgt_info."pchaesxhst01.hy-vee.net".scsilun_canonical'
+#   set_fact:
+#     hostluns: "{{ canonical_facts | json_query(query) }}"
+
+# - name: output matching pure-wdm-ds0-restore lun
+#   debug:
+#     msg: "naa.624a9370{{ ds0info }}"
+#   when: ds0info in item
+#   with_items: "{{ hostluns }}"
+
+# - name: save matching pure-wdm-ds0-restore lun
+#   set_fact:
+#     ds0vmfs: "naa.624a9370{{ ds0info }}"
+#   when: ds0info in item
+#   with_items: "{{ hostluns }}" 
+
+# - name: output matching pure-wdm-ds1-restore lun
+#   debug:
+#     msg: "naa.624a9370{{ ds1info }}"
+#   when: ds1info in item
+#   with_items: "{{ hostluns }}"
+
+# - name: save matching pure-wdm-ds1-restore lun
+#   set_fact:
+#     ds1vmfs: "naa.624a9370{{ ds1info }}"
+#   when: ds1info in item
+#   with_items: "{{ hostluns }}" 
+
+# - name: Mount VMFS pure-wdm-ds0-restore to ChasApps
+#   vmware_host_datastore:
+#       hostname: '{{ vcenter_hostname }}'
+#       username: '{{ username }}'
+#       password: '{{ password }}'
+#       datastore_name: pure-wdm-ds0-restore
+#       datastore_type: vmfs
+#       vmfs_version: 6
+#       vmfs_device_name: "{{ ds0vmfs }}"
+#       esxi_hostname: '{{ esxi_server }}'
+#       state: present
+#       validate_certs: no
+
+
+# - name: Mount VMFS pure-wdm-ds1-restore to ChasApps
+#   vmware_host_datastore:
+#       hostname: '{{ vcenter_hostname }}'
+#       username: '{{ username }}'
+#       password: '{{ password }}'
+#       datastore_name: pure-wdm-ds1-restore
+#       datastore_type: vmfs
+#       vmfs_device_name: "{{ ds1vmfs }}"
+#       esxi_hostname: '{{ esxi_server }}'
+#       vmfs_version: 6
+#       state: present
+#       validate_certs: no
+#   delegate_to: localhost
+
+

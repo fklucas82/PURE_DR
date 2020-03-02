@@ -1,0 +1,51 @@
+- name: collect pure snapshot information
+  purefa_info:
+    fa_url: "{{ arrayurl }}"
+    api_token: "{{ array_token }}"
+    gather_subset:
+     - snapshots    
+  register: array_info
+  
+- name: refine default snapshot information
+  set_fact:
+    allsnapshots: "{{ array_info | json_query('purefa_info.snapshots') | dict2items }}"
+
+- name: get snapshot names only
+  vars:
+    sslist: []
+  set_fact:
+    sslist: "{{ sslist }} + [ '{{ item.key }}' ]"
+  when: item.key is search('Every24hrsFor7DaysRepl')
+  with_items: "{{ allsnapshots }}"
+
+- name: output most recent snapshot
+  debug:
+    msg: "{{ sslist | max }}"
+
+- name: set fact for most recent snapshot
+  vars: 
+    maxsnap: []
+  set_fact:
+    maxsnap: "{{ sslist | max }}"
+
+- name: Restore pure-wdm-ds0 from most recent snapshot
+  purefa_pgsnap:
+    name: "{{ maxsnap.split('.')[0] }}"
+    suffix: "{{ maxsnap.split('.')[1] }}"
+    restore: pure-wdm-ds0
+    target: pure-wdm-ds0-restore
+    fa_url: "{{ arrayurl }}"
+    api_token: "{{ array_token }}"
+    overwrite: true
+    state: copy
+
+- name: Restore pure-wdm-ds1 from most recent snapshot
+  purefa_pgsnap:
+    name: "{{ maxsnap.split('.')[0] }}"
+    suffix: "{{ maxsnap.split('.')[1] }}"
+    restore: pure-wdm-ds1
+    target: pure-wdm-ds1-restore
+    fa_url: "{{ arrayurl }}"
+    api_token: "{{ array_token }}"
+    overwrite: true
+    state: copy

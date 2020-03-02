@@ -1,0 +1,2 @@
+- name: Create Clone from Protection Group Snapshot
+  import_tasks: clone_vol_from_snapshot.yml

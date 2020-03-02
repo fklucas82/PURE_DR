@@ -1,0 +1,18 @@
+---
+- name: Get API versions from FlashArray
+  hosts: localhost
+  gather_facts: no
+  vars:
+    arrayurl: chas-pure1.hy-vee.net
+ 
+  tasks:
+    - name: api version
+      uri:
+        url: https://{{ arrayurl }}/api/api_version
+        method: GET
+        validate_certs: no
+        return_content: yes
+      register: api_version
+ 
+    - name: show supported versions
+      debug: msg="{{ api_version.json }}"
